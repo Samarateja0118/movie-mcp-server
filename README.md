@@ -15,6 +15,7 @@ Once connected, you can ask Claude things like:
 - *"Find me highly rated sci-fi movies from 2024"*
 - *"Get me details about Dune Part Two"*
 - *"What movies are similar to Inception?"*
+- *"top rated movies in 2000's"*
 
 ## Tech Stack
 
