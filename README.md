@@ -29,7 +29,7 @@ Once connected, you can ask Claude things like:
 
 ### 1. Clone the repo
 ```bash
-git clone https://github.com/YOUR_USERNAME/movie-mcp-server.git
+git clone [https://github.com/](https://github.com/Samarateja0118/movie-mcp-server)
 cd movie-mcp-server
 ```
 
