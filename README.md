@@ -80,4 +80,4 @@ movie-mcp-server/
 ## Built by
 
 Samara — CS Master's student  
-Built as a portfolio project while completing Anthropic Academy courses.
+
