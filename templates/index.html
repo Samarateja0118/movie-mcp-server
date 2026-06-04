@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Movie Finder Live Demo | Samara</title>
+  <meta name="description" content="A live portfolio demo that turns plain-English movie prompts into TMDB search results.">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="header-inner">
+      <div class="brand-lockup">
+        <span class="logo">🎬</span>
+        <div>
+          <p class="eyebrow">Live Portfolio Demo</p>
+          <h1>Movie Finder</h1>
+        </div>
+      </div>
+      <p class="stack-tag">Flask + TMDB API + natural language parsing</p>
+    </div>
+  </header>
+  <main>
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="hero-kicker">Show, don’t tell</p>
+        <h2>Type a movie prompt the way a real user would.</h2>
+        <p class="hero-text">
+          This demo turns natural-language requests into live TMDB searches, so a recruiter can
+          try the product in seconds without needing any setup.
+        </p>
+      </div>
+      <form class="search-wrap" id="search-form">
+        <label class="sr-only" for="q">Movie query</label>
+        <input id="q" placeholder="Try: Dune 2024, scary movies from 2022, funny comedy 2024" autocomplete="off">
+        <button id="send" type="submit">Search</button>
+      </form>
+      <div class="chips">
+        <button class="chip" type="button" data-query="Dune 2024">🏜️ Dune 2024</button>
+        <button class="chip" type="button" data-query="thriller 2023">🔪 Thriller 2023</button>
+        <button class="chip" type="button" data-query="funny comedy 2024">😂 Comedy 2024</button>
+        <button class="chip" type="button" data-query="romantic movies 2022">❤️ Romance 2022</button>
+        <button class="chip" type="button" data-query="sci-fi 2024">🚀 Sci-fi 2024</button>
+        <button class="chip" type="button" data-query="horror 2023">👻 Horror 2023</button>
+        <button class="chip" type="button" data-query="animated family 2023">🎠 Family 2023</button>
+      </div>
+    </section>
+
+    <section class="info-band">
+      <article class="info-card">
+        <p class="info-label">What to try</p>
+        <ul class="info-list">
+          <li><span>Dune 2024</span><span>title + year</span></li>
+          <li><span>scary movies from 2022</span><span>mood + year</span></li>
+          <li><span>animated family 2023</span><span>genre synonyms</span></li>
+        </ul>
+      </article>
+      <article class="info-card">
+        <p class="info-label">What this shows</p>
+        <ul class="bullet-list">
+          <li>Natural-language query parsing</li>
+          <li>Live third-party API integration</li>
+          <li>A clean demo UI recruiters can understand fast</li>
+        </ul>
+      </article>
+    </section>
+
+    <section class="status-panel">
+      <div id="status" aria-live="polite">Ready for a prompt.</div>
+      <div id="query-meta" class="query-meta" aria-live="polite"></div>
+    </section>
+
+    <section id="results" aria-live="polite"></section>
+  </main>
+  <footer class="site-footer">
+    <p>Built by Samara. Live data provided by TMDB.</p>
+  </footer>
+  <script src="/static/app.js"></script>
+</body>
+</html>

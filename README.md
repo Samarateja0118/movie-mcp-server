@@ -1,83 +1,126 @@
-# Movie MCP Server 🎬
+# Movie MCP Server + Live Demo
 
-A Model Context Protocol (MCP) server that connects Claude AI to The Movie Database (TMDB) API, enabling real-time movie search, details, and recommendations through natural language conversation.
+This repo contains two working entrypoints around the same TMDB integration:
 
-## What it does
+- `server.py`: an MCP server with movie search, details, and recommendation tools
+- `webapp.py`: a recruiter-friendly Flask web UI for plain-English movie search
 
-This MCP server gives Claude three tools:
-- **search_movies** — Search for movies by title or keyword
-- **get_movie_details** — Get detailed info (rating, runtime, genres, overview) for any movie
-- **get_recommendations** — Get movie recommendations based on a movie you like
+## Demo Ideas
 
-## Demo
+For the MCP server, you can ask for things like:
 
-Once connected, you can ask Claude things like:
-- *"Find me highly rated sci-fi movies from 2024"*
-- *"Get me details about Dune Part Two"*
-- *"What movies are similar to Inception?"*
-- *"top rated movies in 2000's"*
+- `Find me highly rated sci-fi movies from 2024`
+- `Get me details about Dune Part Two`
+- `What movies are similar to Inception?`
+- `top rated movies in 2000's`
 
-## Tech Stack
+For the live web demo, try:
 
-- Python 3.14
-- [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) — Anthropic's open protocol for connecting Claude to external tools
-- [TMDB API](https://www.themoviedb.org/documentation/api) — Free movie database API
-- httpx — Async HTTP client
-- FastMCP — Python MCP server framework
+- `scary movies from 2022`
+- `Dune 2024`
+- `funny comedy 2024`
+- `romantic movies 2022`
+
+## Prerequisites
+
+- Python 3.11+
+- A TMDB read access token from [themoviedb.org](https://www.themoviedb.org/settings/api)
 
 ## Setup
 
-### 1. Clone the repo
-```bash
-git clone [https://github.com/](https://github.com/Samarateja0118/movie-mcp-server)
-cd movie-mcp-server
-```
+1. Create and activate a virtual environment:
 
-### 2. Create virtual environment
 ```bash
 python3 -m venv venv
 source venv/bin/activate
-pip install mcp httpx python-dotenv
 ```
 
-### 3. Get a TMDB API key
-- Sign up free at [themoviedb.org](https://www.themoviedb.org/signup)
-- Go to Settings → API → Create → Developer
-- Copy your API Read Access Token
+2. Install dependencies:
 
-### 4. Create a .env file
-```
-TMDB_TOKEN=your_token_here
+```bash
+pip install -r requirements.txt
 ```
 
-### 5. Connect to Claude Desktop
-Add this to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+3. Create your local environment file:
+
+```bash
+cp .env.example .env
+```
+
+4. Edit `.env` and set:
+
+```bash
+TMDB_TOKEN=your_tmdb_read_api_bearer_token_here
+```
+
+## Run The Web App
+
+```bash
+python webapp.py
+```
+
+Open [http://localhost:5000](http://localhost:5000).
+
+## Deploy The Live Demo On Vercel
+
+This repo is prepared for Vercel's Flask deployment flow:
+
+- `app.py` exports the Flask `app` for Vercel's automatic detection
+- `public/static/` holds static assets so Vercel can serve them directly
+- `.python-version` pins the Python runtime
+- `.vercelignore` keeps local-only files out of the deployment
+
+Steps:
+
+1. Push this repo to GitHub.
+2. In Vercel, create a new project from the repo.
+3. In the Vercel dashboard, add the `TMDB_TOKEN` environment variable in Project Settings.
+4. Deploy. Vercel should detect Flask automatically with no extra build config.
+5. After deploy, open `/health` on the deployed URL to confirm the app is healthy.
+
+Useful docs:
+
+- [Flask on Vercel](https://vercel.com/docs/frameworks/backend/flask)
+- [Python runtime on Vercel](https://vercel.com/docs/functions/runtimes/python)
+- [Environment Variables](https://vercel.com/docs/environment-variables)
+- [`.vercelignore`](https://vercel.com/docs/deployments/vercel-ignore)
+
+## Run The MCP Server
+
+```bash
+python server.py
+```
+
+To connect it to Claude Desktop, point the config at your virtualenv Python and this repo's `server.py`:
+
 ```json
 {
   "mcpServers": {
     "movie-assistant": {
-      "command": "/path/to/venv/bin/python3",
-      "args": ["/path/to/movie-mcp-server/server.py"],
+      "command": "/absolute/path/to/venv/bin/python",
+      "args": ["/absolute/path/to/movie-mcp-server/server.py"],
       "env": {
-        "TMDB_TOKEN": "your_token_here"
+        "TMDB_TOKEN": "your_tmdb_read_api_bearer_token_here"
       }
     }
   }
 }
 ```
 
-Restart Claude Desktop and start chatting!
+## What Was Fixed
 
-## Project Structure
+- Removed stray shell heredoc markers that were breaking `webapp.py`, `templates/index.html`, and the browser script
+- Restored missing runtime dependencies for the MCP server in `requirements.txt`
+- Added friendlier TMDB error handling and timeouts
+- Improved search parsing so title-plus-year queries like `Dune 2024` work more reliably
+- Added a basic live-demo rate limit and query length cap to protect the public URL
+- Prepared the app for Vercel hosting
+
+## Quick Verification
+
+Run these from the repo root:
+
+```bash
+python -m unittest discover -s tests -v
+python webapp.py
 ```
-movie-mcp-server/
-├── server.py        # MCP server with all three tools
-├── .env             # Your TMDB token (not committed)
-├── .gitignore       # Ignores .env and venv
-└── README.md        # This file
-```
-
-## Built by
-
-Samara — CS Master's student  
-
