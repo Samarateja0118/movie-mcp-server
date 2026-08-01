@@ -1,5 +1,8 @@
 # Movie Catalog Service
 
+[![CI](https://github.com/Samarateja0118/movie-mcp-server/actions/workflows/ci.yml/badge.svg)](https://github.com/Samarateja0118/movie-mcp-server/actions/workflows/ci.yml)
+[![Live demo](https://img.shields.io/badge/live-demo-ff7a59)](https://movie-finder-demo.vercel.app)
+
 An asynchronous Python backend that fronts the TMDB catalog behind two independent
 transports: an **MCP server** for assistants and an **HTTP/JSON API** for the live
 web demo. Both surfaces call the same domain service, so behaviour, caching,
