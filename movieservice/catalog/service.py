@@ -14,7 +14,14 @@ from typing import Any
 
 from ..config import Settings
 from ..errors import InvalidQueryError, MovieServiceError
-from ..models import MovieDetail, MovieOverview, MovieSummary, ParsedQuery, SearchResponse
+from ..models import (
+    MovieDetail,
+    MovieOverview,
+    MovieSummary,
+    ParsedQuery,
+    SearchResponse,
+    WatchAvailability,
+)
 from ..tmdb import TmdbGateway
 from .query import parse_query
 
@@ -71,24 +78,29 @@ class CatalogService:
 
     # -- single movie ------------------------------------------------------
 
-    async def movie_overview(self, movie_id: int, *, cast_limit: int = 8) -> MovieOverview:
-        """Fetch a movie, its cast, and its neighbours as one concurrent unit.
+    async def movie_overview(
+        self, movie_id: int, *, cast_limit: int = 8, region: str | None = None
+    ) -> MovieOverview:
+        """Fetch a movie, its cast, its neighbours, and where to watch it.
 
-        Three upstream calls issued together cost roughly one round trip instead
-        of three. The detail call is required; cast and recommendations are
-        enrichment, so a failure there degrades the response instead of failing
-        it — that partial state is reported back rather than hidden.
+        Four upstream calls issued together cost roughly one round trip instead
+        of four. The detail call is required; the rest is enrichment, so a
+        failure there degrades the response instead of failing it — that partial
+        state is reported back rather than hidden.
         """
         started = time.monotonic()
+        watch_region = self._resolve_region(region)
 
         detail_task = asyncio.create_task(self.gateway.movie(movie_id))
         cast_task = asyncio.create_task(self.gateway.cast(movie_id, limit=cast_limit))
         similar_task = asyncio.create_task(self.gateway.recommendations(movie_id))
-
-        results = await asyncio.gather(
-            detail_task, cast_task, similar_task, return_exceptions=True
+        watch_task = asyncio.create_task(
+            self.gateway.watch_providers(movie_id, watch_region)
         )
-        detail, cast, similar = results
+
+        detail, cast, similar, watch = await asyncio.gather(
+            detail_task, cast_task, similar_task, watch_task, return_exceptions=True
+        )
 
         if isinstance(detail, BaseException):
             raise detail  # the required leg failed; there is no useful response
@@ -102,14 +114,32 @@ class CatalogService:
             partial.append("similar")
             self._log_degraded("similar", movie_id, similar)
             similar = []
+        if isinstance(watch, BaseException):
+            partial.append("watch")
+            self._log_degraded("watch", movie_id, watch)
+            watch = None
 
         return MovieOverview(
             detail=detail,
             cast=cast,
             similar=similar,
+            watch=watch,
             partial=partial,
             elapsed_ms=int((time.monotonic() - started) * 1000),
         )
+
+    async def where_to_watch(
+        self, movie_id: int, *, region: str | None = None
+    ) -> WatchAvailability:
+        """Streaming, rental, and purchase options for one movie in one region."""
+        return await self.gateway.watch_providers(movie_id, self._resolve_region(region))
+
+    def _resolve_region(self, region: str | None) -> str:
+        """Fall back to the configured default for a missing or malformed region."""
+        candidate = (region or "").strip().upper()
+        if len(candidate) == 2 and candidate.isalpha():
+            return candidate
+        return self.settings.default_watch_region
 
     async def movie_detail(self, movie_id: int) -> MovieDetail:
         return await self.gateway.movie(movie_id)

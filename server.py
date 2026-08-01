@@ -19,7 +19,7 @@ from movieservice import (
     build_service,
     configure_logging,
 )
-from movieservice.models import MovieOverview, MovieSummary
+from movieservice.models import MovieOverview, MovieSummary, WatchAvailability
 
 load_dotenv()
 
@@ -51,6 +51,29 @@ def _format_summaries(movies: list[MovieSummary], *, with_ids: bool = True) -> s
     return "\n".join(lines)
 
 
+def _format_watch(watch: WatchAvailability) -> str:
+    """Render availability as text, always naming the region it applies to."""
+    if watch.is_empty:
+        return (
+            f"Where To Watch ({watch.region}): no streaming, rental, or purchase "
+            "options listed for this region."
+        )
+
+    lines = [f"Where To Watch ({watch.region}):"]
+    for label, providers in (
+        ("Stream", watch.stream),
+        ("Free", watch.free),
+        ("Rent", watch.rent),
+        ("Buy", watch.buy),
+    ):
+        if providers:
+            lines.append(f"  {label}: {', '.join(p.name for p in providers)}")
+    if watch.link:
+        lines.append(f"  Details: {watch.link}")
+    lines.append(f"  ({watch.attribution}.)")
+    return "\n".join(lines)
+
+
 def _format_overview(overview: MovieOverview) -> str:
     detail = overview.detail
     sections = [
@@ -69,6 +92,8 @@ def _format_overview(overview: MovieOverview) -> str:
             for member in overview.cast
         )
         sections.append(f"Top Cast: {cast}")
+    if overview.watch is not None:
+        sections.append(_format_watch(overview.watch))
     if overview.similar:
         sections.append("Similar Movies:\n" + _format_summaries(overview.similar))
     if overview.partial:
@@ -92,18 +117,35 @@ async def search_movies(query: str) -> str:
 
 
 @mcp.tool()
-async def get_movie_details(movie_id: int) -> str:
-    """Get details, top cast, and similar titles for a movie by its TMDB ID.
+async def get_movie_details(movie_id: int, region: str = "") -> str:
+    """Get details, cast, where to watch, and similar titles for a TMDB movie ID.
 
-    Runs the three upstream lookups concurrently, so it costs about one round
-    trip rather than three.
+    Runs the four upstream lookups concurrently, so it costs about one round
+    trip rather than four. ``region`` is a two-letter country code (US, IN, GB)
+    controlling which streaming services are reported; it defaults to the
+    server's configured region.
     """
     try:
-        overview = await get_service().movie_overview(movie_id)
+        overview = await get_service().movie_overview(movie_id, region=region or None)
     except MovieServiceError as exc:
         return f"Could not load movie {movie_id}: {exc.detail}"
 
     return _format_overview(overview)
+
+
+@mcp.tool()
+async def get_watch_providers(movie_id: int, region: str = "") -> str:
+    """Find where a movie can be streamed, rented, or bought.
+
+    ``region`` is a two-letter country code (US, IN, GB). Availability is
+    regional, so the answer always states which region it describes.
+    """
+    try:
+        watch = await get_service().where_to_watch(movie_id, region=region or None)
+    except MovieServiceError as exc:
+        return f"Could not load watch options for {movie_id}: {exc.detail}"
+
+    return _format_watch(watch)
 
 
 @mcp.tool()

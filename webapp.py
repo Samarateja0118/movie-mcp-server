@@ -31,6 +31,7 @@ from movieservice import (
     RateLimitedError,
     Settings,
     SlidingWindowRateLimiter,
+    WatchAvailability,
     build_service,
     configure_logging,
     new_request_id,
@@ -87,6 +88,7 @@ class MovieApiResponse(BaseModel):
     detail: MovieDetail
     cast: list[CastMember]
     similar: list[MovieSummary]
+    watch: WatchAvailability | None = None
     meta: MovieMeta
 
 
@@ -183,6 +185,17 @@ async def handle_validation_error(
 # -- dependencies ----------------------------------------------------------
 
 
+def resolve_region(request: Request, region: str | None) -> str | None:
+    """Explicit choice wins; otherwise use the CDN's geo hint, then the default.
+
+    Vercel sets `x-vercel-ip-country` on inbound requests, which lets a first
+    visit show the right country's streaming services without asking.
+    """
+    if region:
+        return region
+    return request.headers.get("x-vercel-ip-country") or None
+
+
 async def enforce_rate_limit(request: Request) -> None:
     """Per-IP inbound quota, applied to the endpoints that cost upstream calls."""
     forwarded = request.headers.get("x-forwarded-for", "")
@@ -253,14 +266,38 @@ async def api_search(payload: SearchRequest) -> SearchApiResponse:
     dependencies=[Depends(enforce_rate_limit)],
     tags=["catalog"],
 )
-async def api_movie(movie_id: int) -> MovieApiResponse:
-    """Detail, cast, and similar titles — fetched concurrently as one unit."""
-    overview = await service.movie_overview(movie_id)
+async def api_movie(
+    request: Request, movie_id: int, region: str | None = None
+) -> MovieApiResponse:
+    """Detail, cast, similar titles, and where to watch — fetched concurrently.
+
+    `region` is a two-letter country code; watch availability is regional.
+    """
+    overview = await service.movie_overview(
+        movie_id, region=resolve_region(request, region)
+    )
     return MovieApiResponse(
         detail=overview.detail,
         cast=overview.cast,
         similar=overview.similar,
+        watch=overview.watch,
         meta=MovieMeta(partial=overview.partial, elapsed_ms=overview.elapsed_ms),
+    )
+
+
+@app.get(
+    "/api/movies/{movie_id}/watch",
+    response_model=WatchAvailability,
+    responses={404: {"model": ErrorResponse}, 429: {"model": ErrorResponse}},
+    dependencies=[Depends(enforce_rate_limit)],
+    tags=["catalog"],
+)
+async def api_watch(
+    request: Request, movie_id: int, region: str | None = None
+) -> WatchAvailability:
+    """Streaming, rental, and purchase options for one movie in one region."""
+    return await service.where_to_watch(
+        movie_id, region=resolve_region(request, region)
     )
 
 

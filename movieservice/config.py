@@ -39,7 +39,11 @@ class Settings:
     # Upstream integration
     tmdb_base_url: str = "https://api.themoviedb.org/3"
     tmdb_image_base: str = "https://image.tmdb.org/t/p/w342"
+    tmdb_logo_base: str = "https://image.tmdb.org/t/p/w92"
     tmdb_token: str | None = None
+
+    # Watch availability (JustWatch data, served through TMDB)
+    default_watch_region: str = "US"
 
     # Connection pool / latency budget
     request_timeout: float = 8.0
@@ -60,6 +64,7 @@ class Settings:
     # Response cache
     cache_ttl_seconds: float = 60.0
     cache_genre_ttl_seconds: float = 3600.0
+    cache_watch_ttl_seconds: float = 900.0
     cache_max_entries: int = 512
 
     # Inbound protection
@@ -76,7 +81,11 @@ class Settings:
         return cls(
             tmdb_base_url=os.getenv("TMDB_BASE_URL", cls.tmdb_base_url),
             tmdb_image_base=os.getenv("TMDB_IMAGE_BASE", cls.tmdb_image_base),
+            tmdb_logo_base=os.getenv("TMDB_LOGO_BASE", cls.tmdb_logo_base),
             tmdb_token=os.getenv("TMDB_TOKEN") or None,
+            default_watch_region=(
+                os.getenv("DEFAULT_WATCH_REGION", cls.default_watch_region).upper()
+            ),
             request_timeout=_env_float("REQUEST_TIMEOUT", cls.request_timeout),
             connect_timeout=_env_float("CONNECT_TIMEOUT", cls.connect_timeout),
             pool_max_connections=_env_int("POOL_MAX_CONNECTIONS", cls.pool_max_connections),
@@ -92,6 +101,9 @@ class Settings:
             cache_ttl_seconds=_env_float("CACHE_TTL_SECONDS", cls.cache_ttl_seconds),
             cache_genre_ttl_seconds=_env_float(
                 "CACHE_GENRE_TTL_SECONDS", cls.cache_genre_ttl_seconds
+            ),
+            cache_watch_ttl_seconds=_env_float(
+                "CACHE_WATCH_TTL_SECONDS", cls.cache_watch_ttl_seconds
             ),
             cache_max_entries=_env_int("CACHE_MAX_ENTRIES", cls.cache_max_entries),
             rate_limit_max_requests=_env_int(

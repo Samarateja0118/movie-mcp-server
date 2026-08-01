@@ -88,6 +88,68 @@ class MovieDetail(BaseModel):
         )
 
 
+class WatchProvider(BaseModel):
+    """One service a movie can be watched on, in one region."""
+
+    name: str
+    logo: str | None = None
+    priority: int = 0
+
+    @classmethod
+    def from_tmdb(cls, payload: dict[str, Any], *, logo_base: str) -> "WatchProvider":
+        return cls(
+            name=payload.get("provider_name") or "Unknown",
+            logo=_poster_url(payload.get("logo_path"), logo_base),
+            priority=int(payload.get("display_priority") or 0),
+        )
+
+
+class WatchAvailability(BaseModel):
+    """Where a movie can be watched, for one region.
+
+    Availability is regional, so the region is part of the answer rather than an
+    assumption. TMDB sources this from JustWatch and requires that attribution
+    wherever the data is shown.
+    """
+
+    region: str
+    link: str | None = None
+    stream: list[WatchProvider] = Field(default_factory=list)
+    rent: list[WatchProvider] = Field(default_factory=list)
+    buy: list[WatchProvider] = Field(default_factory=list)
+    free: list[WatchProvider] = Field(default_factory=list)
+    attribution: str = "Watch availability data from JustWatch"
+
+    @property
+    def is_empty(self) -> bool:
+        return not (self.stream or self.rent or self.buy or self.free)
+
+    @classmethod
+    def from_tmdb(
+        cls, payload: dict[str, Any], *, region: str, logo_base: str
+    ) -> "WatchAvailability":
+        """Pick one region out of the ~107 TMDB returns for a movie."""
+
+        def providers(key: str) -> list[WatchProvider]:
+            entries = [
+                WatchProvider.from_tmdb(item, logo_base=logo_base)
+                for item in payload.get(key, [])
+            ]
+            entries.sort(key=lambda provider: provider.priority)
+            return entries
+
+        # TMDB splits subscription into `flatrate` (paid) and `ads` (ad-supported);
+        # to a viewer both mean "included, press play", so they merge into `stream`.
+        return cls(
+            region=region,
+            link=payload.get("link"),
+            stream=providers("flatrate") + providers("ads"),
+            rent=providers("rent"),
+            buy=providers("buy"),
+            free=providers("free"),
+        )
+
+
 class ParsedQuery(BaseModel):
     """What the natural-language parser understood from a prompt.
 
@@ -116,10 +178,11 @@ class SearchResponse(BaseModel):
 
 
 class MovieOverview(BaseModel):
-    """A movie plus its cast and neighbours, fetched as one orchestrated unit."""
+    """A movie plus its cast, neighbours, and where to watch it — one unit."""
 
     detail: MovieDetail
     cast: list[CastMember] = Field(default_factory=list)
     similar: list[MovieSummary] = Field(default_factory=list)
+    watch: WatchAvailability | None = None
     partial: list[str] = Field(default_factory=list)
     elapsed_ms: int = 0
