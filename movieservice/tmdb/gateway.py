@@ -12,7 +12,7 @@ from typing import Any
 
 from ..config import Settings
 from ..errors import ConfigurationError
-from ..models import CastMember, MovieDetail, MovieSummary
+from ..models import CastMember, MovieDetail, MovieSummary, WatchAvailability
 from ..transport import CircuitBreaker, ResilientHttpClient, RetryPolicy, TTLCache
 
 
@@ -117,6 +117,25 @@ class TmdbGateway:
         members = [CastMember.from_tmdb(item) for item in payload.get("cast", [])]
         members.sort(key=lambda member: member.order)
         return members[:limit]
+
+    async def watch_providers(self, movie_id: int, region: str) -> WatchAvailability:
+        """Where a movie can be watched in ``region``.
+
+        TMDB returns every region in one document, so the cache key is the movie
+        rather than the movie-and-region: one upstream call answers a US viewer
+        and an IN viewer alike. Availability moves slowly, so it is held longer
+        than ordinary search results.
+        """
+        payload = await self.client.get_json(
+            f"/movie/{movie_id}/watch/providers",
+            cache_ttl=self.settings.cache_watch_ttl_seconds,
+        )
+        normalized = region.strip().upper()
+        return WatchAvailability.from_tmdb(
+            payload.get("results", {}).get(normalized, {}),
+            region=normalized,
+            logo_base=self.settings.tmdb_logo_base,
+        )
 
     async def recommendations(self, movie_id: int, limit: int = 5) -> list[MovieSummary]:
         payload = await self.client.get_json(

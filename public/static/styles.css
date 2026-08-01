@@ -427,3 +427,186 @@ main{
     grid-template-columns:1fr;
   }
 }
+
+/* ---------------------------------------------------------------- *
+ * Region selector                                                   *
+ * ---------------------------------------------------------------- */
+
+.search-wrap select{
+  font:inherit;
+  padding:16px 14px;
+  color:var(--text);
+  background:rgba(7,16,28,.72);
+  border:1px solid rgba(166,191,227,.24);
+  border-radius:18px;
+  outline:none;
+  cursor:pointer;
+  transition:border-color .2s ease, box-shadow .2s ease;
+}
+
+.search-wrap select:focus{
+  border-color:var(--accent-cool);
+  box-shadow:0 0 0 4px rgba(115,199,255,.12);
+}
+
+/* ---------------------------------------------------------------- *
+ * Cards become an affordance for the watch panel                    *
+ * ---------------------------------------------------------------- */
+
+.card{
+  cursor:pointer;
+}
+
+.card:focus-visible{
+  outline:2px solid var(--accent-cool);
+  outline-offset:3px;
+}
+
+.card-cue{
+  margin-top:10px;
+  font-size:.82rem;
+  font-weight:600;
+  color:var(--accent-soft);
+  opacity:0;
+  transition:opacity .2s ease;
+}
+
+.card:hover .card-cue,
+.card:focus-visible .card-cue{
+  opacity:1;
+}
+
+@media (hover:none){
+  .card-cue{ opacity:1; }
+}
+
+/* ---------------------------------------------------------------- *
+ * Where-to-watch panel                                              *
+ * ---------------------------------------------------------------- */
+
+.panel-backdrop{
+  position:fixed;
+  inset:0;
+  z-index:50;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+  background:rgba(4,9,17,.72);
+  backdrop-filter:blur(6px);
+}
+
+.panel-backdrop[hidden]{ display:none; }
+
+.panel{
+  width:min(560px,100%);
+  max-height:82vh;
+  overflow-y:auto;
+  padding:26px 28px 22px;
+  background:var(--panel-strong);
+  border:1px solid var(--border);
+  border-radius:24px;
+  box-shadow:var(--shadow);
+}
+
+.panel-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:16px;
+}
+
+.panel-head h3{
+  margin:0;
+  font-size:1.35rem;
+  line-height:1.25;
+}
+
+#watch-close{
+  flex:none;
+  width:34px;
+  height:34px;
+  font:inherit;
+  color:var(--muted);
+  background:rgba(7,16,28,.72);
+  border:1px solid var(--border);
+  border-radius:50%;
+  cursor:pointer;
+  transition:color .2s ease, border-color .2s ease;
+}
+
+#watch-close:hover{
+  color:var(--text);
+  border-color:var(--accent-cool);
+}
+
+.panel-subtitle{
+  margin:8px 0 20px;
+  font-size:.9rem;
+  color:var(--muted);
+}
+
+.provider-group{ margin-bottom:18px; }
+
+.provider-label{
+  margin:0 0 10px;
+  font-size:.74rem;
+  font-weight:700;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--accent-soft);
+}
+
+.provider-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin:0;
+  padding:0;
+  list-style:none;
+}
+
+.provider{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  padding:8px 14px 8px 8px;
+  font-size:.88rem;
+  background:rgba(7,16,28,.6);
+  border:1px solid var(--border);
+  border-radius:14px;
+}
+
+.provider img{
+  width:28px;
+  height:28px;
+  border-radius:8px;
+  object-fit:cover;
+}
+
+.watch-empty{
+  margin:0 0 16px;
+  font-size:.92rem;
+  color:var(--muted);
+}
+
+.watch-footer{
+  margin:18px 0 0;
+  padding-top:14px;
+  font-size:.78rem;
+  color:var(--muted);
+  border-top:1px solid var(--border);
+}
+
+.watch-footer a{
+  color:var(--accent-cool);
+  text-decoration:none;
+}
+
+.watch-footer a:hover{ text-decoration:underline; }
+
+@media (max-width:620px){
+  .search-wrap{ flex-wrap:wrap; }
+  .search-wrap select{ flex:1; }
+  .panel{ padding:22px 20px 18px; }
+}

@@ -31,6 +31,8 @@ from .models import (
     MovieSummary,
     ParsedQuery,
     SearchResponse,
+    WatchAvailability,
+    WatchProvider,
 )
 from .observability import configure_logging, new_request_id, request_id_var
 from .tmdb import TmdbGateway
@@ -52,6 +54,8 @@ __all__ = [
     "SlidingWindowRateLimiter",
     "TmdbGateway",
     "UpstreamError",
+    "WatchAvailability",
+    "WatchProvider",
     "build_service",
     "configure_logging",
     "new_request_id",

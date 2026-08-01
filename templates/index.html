@@ -34,6 +34,15 @@
       <form class="search-wrap" id="search-form">
         <label class="sr-only" for="q">Movie query</label>
         <input id="q" placeholder="Try: Dune 2024, scary movies from 2022, funny comedy 2024" autocomplete="off">
+        <label class="sr-only" for="region">Streaming region</label>
+        <select id="region" title="Streaming availability region">
+          <option value="US">🇺🇸 US</option>
+          <option value="IN">🇮🇳 IN</option>
+          <option value="GB">🇬🇧 GB</option>
+          <option value="CA">🇨🇦 CA</option>
+          <option value="AU">🇦🇺 AU</option>
+          <option value="DE">🇩🇪 DE</option>
+        </select>
         <button id="send" type="submit">Search</button>
       </form>
       <div class="chips">
@@ -73,6 +82,16 @@
 
     <section id="results" aria-live="polite"></section>
   </main>
+
+  <div class="panel-backdrop" id="watch-panel" role="dialog" aria-modal="true" aria-labelledby="watch-title" hidden>
+    <article class="panel">
+      <header class="panel-head">
+        <h3 id="watch-title"></h3>
+        <button id="watch-close" type="button" aria-label="Close">✕</button>
+      </header>
+      <div id="watch-body"></div>
+    </article>
+  </div>
   <footer class="site-footer">
     <p>Built by Samara. Live data provided by TMDB.</p>
   </footer>

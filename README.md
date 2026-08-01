@@ -69,8 +69,8 @@ stampeding the upstream — five simultaneous identical searches produce one TMD
 call.
 
 **Concurrent orchestration.** `get_movie_details` fans out to `/movie`,
-`/credits`, and `/recommendations` together, so it costs roughly one round trip
-instead of three (~150 ms rather than ~450 ms).
+`/credits`, `/recommendations`, and `/watch/providers` together, so it costs
+roughly one round trip instead of four (~150 ms rather than ~600 ms).
 
 **Graceful degradation.** In that fan-out the detail call is required; cast and
 recommendations are enrichment. If enrichment fails the response still returns,
@@ -84,7 +84,8 @@ failing the request.
 | --- | --- |
 | `GET /` | The demo UI |
 | `POST /api/search` | `{"query": "scary movies from 2022"}` → parsed intent + results |
-| `GET /api/movies/{id}` | Orchestrated detail + cast + similar |
+| `GET /api/movies/{id}?region=IN` | Orchestrated detail + cast + similar + where to watch |
+| `GET /api/movies/{id}/watch?region=IN` | Just the watch options |
 | `GET /health`, `GET /api/health` | Liveness plus breaker state, cache stats, and request metrics — returns `503` when a dependency breaker is open |
 | `GET /docs`, `GET /openapi.json` | Generated API documentation |
 
@@ -98,8 +99,30 @@ contract rather than an opaque dict.
 | Tool | Description |
 | --- | --- |
 | `search_movies(query)` | Title, genre, mood, or year search |
-| `get_movie_details(movie_id)` | Detail + top cast + similar titles, fetched concurrently |
+| `get_movie_details(movie_id, region)` | Detail + cast + where to watch + similar, fetched concurrently |
+| `get_watch_providers(movie_id, region)` | Where a movie streams, rents, or sells |
 | `get_recommendations(movie_id)` | Recommendations for a TMDB id |
+
+## Where to watch
+
+Every result in the demo is clickable and opens a panel showing where the movie
+can be streamed, rented, or bought, with provider logos grouped by tier. A region
+selector sits next to the search box; availability is regional, so the answer
+always states which region it describes.
+
+Region is resolved in this order: an explicit `?region=` value, then Vercel's
+`x-vercel-ip-country` geo header (so a first-time visitor sees their own
+country's services without asking), then `DEFAULT_WATCH_REGION`. Anything that
+is not a two-letter code falls back to the default rather than reaching TMDB.
+
+TMDB returns all ~107 regions in a single document, so the cache key is the
+movie rather than the movie-and-region: one upstream call answers a viewer in the
+US and one in India alike, and it is held for `CACHE_WATCH_TTL_SECONDS` since
+availability moves slowly.
+
+This data is sourced from JustWatch, and TMDB's terms require that attribution
+wherever it appears — so the API returns an `attribution` field, and both the web
+panel and the MCP tool output carry the credit.
 
 ## Prerequisites
 
@@ -162,7 +185,8 @@ Every knob is an environment variable with a working default — see
 | `RETRY_ATTEMPTS` | `3` | Total attempts, including the first |
 | `RETRY_BASE_DELAY` / `RETRY_MAX_DELAY` / `RETRY_JITTER` | `0.2` / `2.0` / `0.25` | Backoff shape |
 | `BREAKER_FAILURE_THRESHOLD` / `BREAKER_RESET_SECONDS` | `5` / `20` | Circuit breaker sensitivity |
-| `CACHE_TTL_SECONDS` / `CACHE_GENRE_TTL_SECONDS` / `CACHE_MAX_ENTRIES` | `60` / `3600` / `512` | Response cache |
+| `CACHE_TTL_SECONDS` / `CACHE_GENRE_TTL_SECONDS` / `CACHE_WATCH_TTL_SECONDS` / `CACHE_MAX_ENTRIES` | `60` / `3600` / `900` / `512` | Response cache |
+| `DEFAULT_WATCH_REGION` | `US` | Fallback region for watch availability |
 | `RATE_LIMIT_MAX_REQUESTS` / `RATE_LIMIT_WINDOW_SECONDS` | `30` / `3600` | Inbound quota per client IP |
 | `MAX_QUERY_LENGTH` | `140` | Rejects oversized prompts |
 | `LOG_LEVEL` | `INFO` | JSON log verbosity |
@@ -173,12 +197,13 @@ Every knob is an environment variable with a working default — see
 python -m unittest discover -s tests -t . -v
 ```
 
-63 tests, no network access — upstream behaviour is simulated with
+82 tests, no network access — upstream behaviour is simulated with
 `httpx.MockTransport`, and backoff sleeps are stubbed, so the suite runs in about
 a tenth of a second. Coverage includes the backoff schedule, `Retry-After`
 handling, breaker open/half-open/reopen transitions, LRU eviction, single-flight
 coalescing, gateway payload mapping, concurrent fan-out timing, degradation on
-partial failure, and both adapters' contracts.
+partial failure, region resolution and normalisation, and both adapters'
+contracts.
 
 ## Deploy
 
